@@ -1,4 +1,4 @@
-#include "playlist.hpp"
+#include "core/playlist.hpp"
 
 int Playlist::importFromFolder(std::filesystem::path path)
 {

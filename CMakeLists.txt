@@ -12,17 +12,18 @@ project(
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 set(SRC_FILES 
-    src/player.cpp 
-    src/playlist.cpp 
-    src/track.cpp
-    src/helper.cpp
+    src/core/playlist.cpp 
+    src/core/track.cpp
+    src/core/helper.cpp
 )
 
 set(HEADER_FILES 
-    include/player.hpp 
-    include/playlist.hpp 
-    include/track.hpp
-    include/helper.hpp
+    include/core/enums.hpp
+    include/core/helper.hpp
+    include/core/playlist.hpp 
+    include/core/track.hpp
+
+    include/ui/iplayer.hpp
 )
 
 add_library(${PROJECT_NAME}_lib ${SRC_FILES} ${HEADER_FILES})
