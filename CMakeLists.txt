@@ -9,16 +9,20 @@ project(
     VERSION 0.0
     LANGUAGES CXX)
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 set(SRC_FILES 
     src/player.cpp 
     src/playlist.cpp 
     src/track.cpp
+    src/helper.cpp
 )
 
 set(HEADER_FILES 
     include/player.hpp 
     include/playlist.hpp 
     include/track.hpp
+    include/helper.hpp
 )
 
 add_library(${PROJECT_NAME}_lib ${SRC_FILES} ${HEADER_FILES})
