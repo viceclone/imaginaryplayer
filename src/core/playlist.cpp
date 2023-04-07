@@ -12,12 +12,32 @@ int Playlist::importFromFolder(std::filesystem::path path)
             count++;
         }
     }
+    m_currentTrackIter = m_tracks.begin();
     return count;
 }
 
 int Playlist::size() const
 {
     return m_tracks.size();
+}
+
+std::shared_ptr<Track> Playlist::resetToFirstTrack()
+{
+    if (m_tracks.empty())
+    {
+        return nullptr;
+    }
+
+    if (m_isShuffled)
+    {
+        m_currentTrackIter = m_shuffledPlaylist.begin();
+    }
+    else
+    {
+        m_currentTrackIter = m_tracks.begin();
+    }
+
+    return *m_currentTrackIter;
 }
 
 std::shared_ptr<Track> Playlist::currentTrack()
@@ -39,10 +59,15 @@ std::shared_ptr<Track> Playlist::nextTrack()
         return nullptr;
     }
 
-    ++m_currentTrackIter;
-    if (m_isShuffled && m_currentTrackIter == m_shuffledPlaylist.end())
+    if (m_isShuffled)
     {
-        if (m_repeatMode == RepeatMode::RepeatWholePlaylist)
+        if (m_currentTrackIter == m_shuffledPlaylist.end())
+        {
+            return nullptr;
+        }
+        ++m_currentTrackIter;
+        if (m_repeatMode == RepeatMode::RepeatWholePlaylist 
+            && m_currentTrackIter == m_shuffledPlaylist.end())
         {
             m_currentTrackIter = m_shuffledPlaylist.begin();
         }
@@ -52,9 +77,15 @@ std::shared_ptr<Track> Playlist::nextTrack()
         }
         
     }
-    else if (!m_isShuffled && m_currentTrackIter == m_tracks.end())
+    else if (!m_isShuffled)
     {
-        if (m_repeatMode == RepeatMode::RepeatWholePlaylist)
+        if (m_currentTrackIter == m_tracks.end())
+        {
+            return nullptr;
+        }
+
+        ++m_currentTrackIter;
+        if (m_repeatMode == RepeatMode::RepeatWholePlaylist && m_currentTrackIter == m_tracks.end())
         {
             m_currentTrackIter = m_tracks.begin();
         }

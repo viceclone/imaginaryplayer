@@ -15,6 +15,8 @@ set(SRC_FILES
     src/core/playlist.cpp 
     src/core/track.cpp
     src/core/helper.cpp
+
+    src/ui/text_based_player.cpp
 )
 
 set(HEADER_FILES 
@@ -22,8 +24,10 @@ set(HEADER_FILES
     include/core/helper.hpp
     include/core/playlist.hpp 
     include/core/track.hpp
+    include/core/logger.hpp
 
     include/ui/iplayer.hpp
+    include/ui/text_based_player.hpp
 )
 
 add_library(${PROJECT_NAME}_lib ${SRC_FILES} ${HEADER_FILES})

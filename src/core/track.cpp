@@ -71,3 +71,32 @@ const std::string& Track::content() const
 {
     return m_content;
 }
+
+char Track::streamCurrentContent()
+{
+    if (m_currentContentIndex < m_content.size())
+    {
+        auto c = m_content.at(m_currentContentIndex);
+        m_currentContentIndex++;
+        if (m_currentContentIndex == m_content.size())
+        {
+            m_endOfTrack = true;
+        }
+        return c;
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+void Track::resetCurrentContentIndex()
+{
+    m_currentContentIndex = 0;
+    m_endOfTrack = false;
+}
+
+bool Track::endOfTrack() const
+{
+    return m_endOfTrack;
+}

@@ -23,6 +23,12 @@ public:
 
     const std::string& content() const;
 
+    char streamCurrentContent();
+
+    void resetCurrentContentIndex();
+
+    bool endOfTrack() const;
+
 private:
     bool parseKeyValue(const std::string& key, const std::string& val);
 
@@ -31,4 +37,6 @@ private:
     std::string m_codec;
     int m_durationMs{0}; // track duration in milliseconds
     std::string m_content;
+    int m_currentContentIndex{0}; // a cursor to the current position in the track content
+    bool m_endOfTrack{false};
 };

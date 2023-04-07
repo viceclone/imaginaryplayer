@@ -27,6 +27,8 @@ public:
 
     int size() const;
 
+    // Reset the pointer to the first track
+    std::shared_ptr<Track> resetToFirstTrack();
     // Return the pointer to the current track
     std::shared_ptr<Track> currentTrack();
     // Switch to the next/previous track

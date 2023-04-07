@@ -1,0 +1,5 @@
+title track1
+artist artist1
+codec mp3
+duration 50
+content abcdefghijkl
