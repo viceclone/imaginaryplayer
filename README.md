@@ -57,4 +57,4 @@ cmake ..
 cmake --build .
 ```
 # Demo
-(capturing a video)
+Link to the demo video: https://youtu.be/H4RiD5uz6fk
