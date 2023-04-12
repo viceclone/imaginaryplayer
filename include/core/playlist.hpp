@@ -29,7 +29,10 @@ public:
 
     // Return the number of tracks added to the playlist
     int importFromFolder(std::filesystem::path path);
+    int importFromFile(std::filesystem::path path);
+    void exportToFile(std::filesystem::path path);
 
+    bool isValid() const;
     int size() const;
 
     // Reset the pointer to the first track
@@ -56,6 +59,8 @@ public:
 
     void clear();
 private:
+    std::optional<fs::path> m_path;
+    bool m_isValid{false};
     std::string m_name;
     std::string m_description;
     TrackList m_tracks; // A track can be in different playlist, therefore they are included as shared pointers.

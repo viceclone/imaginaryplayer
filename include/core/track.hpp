@@ -13,6 +13,8 @@ public:
     bool initFromFile(std::filesystem::path path);
 
     // Getters
+    std::string path() const;
+
     const std::string& title() const;
 
     const std::string& artist() const;
@@ -32,6 +34,7 @@ public:
 private:
     bool parseKeyValue(const std::string& key, const std::string& val);
 
+    std::filesystem::path m_path;
     std::string m_title;
     std::string m_artist{"unknown"};
     std::string m_codec;

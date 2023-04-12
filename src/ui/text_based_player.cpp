@@ -5,6 +5,7 @@
 #include <filesystem>
 #include "ui/text_based_player.hpp"
 #include "core/logger.hpp"
+#include "core/constants.hpp"
 
 namespace fs = std::filesystem;
 
@@ -13,21 +14,52 @@ TextBasedPlayer::~TextBasedPlayer()
     m_streamingThread.join();
 }
 
+void TextBasedPlayer::printHelp()
+{
+    LOG_COMMAND("HELP");
+    LOG(">>>> Text-based player receives command from keyboard input.");
+    LOG("----------------------------------------------------------");
+    LOG("-> " << BOLD("'H', '?'") << ": print help");
+    LOG("-> " << BOLD("'N'     ") << ": import playlist from file");
+    LOG("-> " << BOLD("'Z'     ") << ": play");
+    LOG("-> " << BOLD("'X'     ") << ": pause");
+    LOG("-> " << BOLD("'D'     ") << ": next track");
+    LOG("-> " << BOLD("'A'     ") << ": previous track");
+    LOG("-> " << BOLD("'S'     ") << ": shuffle/unshuffle");
+    LOG("-> " << BOLD("'R'     ") << ": change repeat mode (none/repeat all/repeat currentsong)");
+    LOG("-> " << BOLD("'I'     ") << ": current playlist info");
+    LOG("-> " << BOLD("'Q'     ") << ": quit");
+    LOG("----------------------------------------------------------");
+}
+
 int TextBasedPlayer::importPlaylist()
 {
+    std::lock_guard<decltype(m_mutex)> lock(m_mutex);
+    LOG_COMMAND(CYAN("IMPORT PLAYLIST"));
+    pause(true);
     std::string pathString;
-    std::cout << "Enter folder containing playlist information: ";
+    std::cout << "Enter playlist file information: ";
     std::cin >> pathString;
     fs::path currentPath = fs::current_path();
-    auto path = currentPath / pathString;
-    if (!fs::is_directory(path))
+    auto path = fs::path(pathString);
+    if (path.is_relative())
     {
-        std::cerr << "Invalid path!" << std:: endl;
-        return 0;
+        path = currentPath / path;
     }
-   
-    m_playlist = std::make_shared<Playlist>();
-    return m_playlist->importFromFolder(path);
+    auto playlist = std::make_shared<Playlist>();
+    auto count = playlist->importFromFile(path);
+    if (playlist->isValid())
+    {
+        m_playlist.swap(playlist);
+        m_currentTrack = m_playlist->resetToFirstTrack();
+    }
+
+    if (count == 0)
+    {
+        WARN_MSG("Empty playlist imported");
+    }
+    
+    return count;
 }
 
 void TextBasedPlayer::currentPlaylistInfo()
@@ -37,8 +69,8 @@ void TextBasedPlayer::currentPlaylistInfo()
         NEWLINE();
     }
     LOG(BOLD("/////////////////// CURRENT PLAYLIST ///////////////////"));
-    LOG(BOLD("Name: " << m_playlist->name() << ""));
-    LOG("Description: " << m_playlist->description() << "");
+    LOG(CYAN(BOLD("Name: " << m_playlist->name() << "")));
+    LOG(BOLD("Description: ") << m_playlist->description() << "");
     for (auto track : m_playlist->tracks())
     {
         if (m_currentTrack && m_currentTrack == track)
@@ -72,7 +104,7 @@ void TextBasedPlayer::streamCurrentSong()
         else
         {
             std::cout << m_currentTrack->streamCurrentContent();
-            Sleep(700 /*milliseconds*/);
+            Sleep(DelayBetweenContent /*milliseconds*/); // Delay between content
         }
     }
 
@@ -93,6 +125,12 @@ void TextBasedPlayer::play()
 {
     std::lock_guard<decltype(m_mutex)> lock(m_mutex);
     LOG_COMMAND(GREEN("PLAY"));
+    if (!m_playlist || !m_playlist->isValid())
+    {
+        LOG("No playlist is currently available!");
+        return;
+    }
+
     if (!m_isPlaying)
     {
         if (!m_currentTrack)
@@ -118,11 +156,19 @@ void TextBasedPlayer::play()
     m_cv.notify_one();
 }
 
-void TextBasedPlayer::pause()
+void TextBasedPlayer::pause(bool autopause)
 {
-    std::lock_guard<decltype(m_mutex)> lock(m_mutex);
-    LOG_COMMAND(YELLOW("PAUSE"));
-    m_isPlaying = false;
+    if (!autopause)
+    {
+        std::lock_guard<decltype(m_mutex)> lock(m_mutex);
+        LOG_COMMAND(YELLOW("PAUSE"));
+        m_isPlaying = false;
+    }
+    else
+    {
+        m_isPlaying = false;
+    }
+    
 }
 
 bool TextBasedPlayer::next(bool autoplay)
@@ -229,16 +275,16 @@ void TextBasedPlayer::terminate()
 
 void TextBasedPlayer::run()
 {
+    LOG(BOLD("*********************** WELCOME TO THE IMAGINARY PLAYER BY HUY ***********************"));
+    LOG(BOLD(">>>> Press 'N' to import your playlist from file <<<<"));
+    LOG(BOLD(">>>> Press 'H' or '?' to get help <<<<"));
     m_isRunning = true;
-    auto trackCount = importPlaylist();
-    m_currentTrack = m_playlist->resetToFirstTrack();
-    std::cout << trackCount << " tracks have been imported" << std::endl;
     m_streamingThread = std::thread([this]
     {
         while (m_isRunning)
         {
             streamCurrentSong();
-            Sleep(100);
+            Sleep(DelayBetweenTracks); // Delay between tracks
         }
     });
 
@@ -258,6 +304,13 @@ void TextBasedPlayer::startCommandHandler()
         }
         switch (charCommand)
         {
+        case 'H':
+        case '?':
+            printHelp();
+            break;
+        case 'N':
+            importPlaylist();
+            break;
         case 'Z':
             play();
             break;

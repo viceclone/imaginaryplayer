@@ -35,9 +35,12 @@ bool Track::initFromFile(std::filesystem::path path)
 {
     std::ifstream in(path);
     std::string key, val;
-    while (in >> key >> val)
+    
+    for (std::string line; getline(in, line);)
     {
-        // TODO: check if key is duplicated
+        auto pos = line.find(' ');
+        key = line.substr(0, pos);
+        val = line.substr(pos+1, line.size()-pos-1);
         if (!parseKeyValue(key, val))
         {
             return false;
@@ -47,6 +50,11 @@ bool Track::initFromFile(std::filesystem::path path)
 }
 
 // Getters
+std::string Track::path() const
+{
+    return m_path.string();
+}
+
 const std::string& Track::title() const
 {
     return m_title;

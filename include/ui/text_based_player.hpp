@@ -17,7 +17,7 @@ public:
     int importPlaylist() override;
     void currentPlaylistInfo() override;
     void play() override;
-    void pause() override;
+    void pause(bool autopause = false) override;
 
     bool next(bool autoplay = false) override;
     bool previous() override;
@@ -30,6 +30,7 @@ public:
     void run() override;
     void terminate() override;
 private:
+    void printHelp();
     void startCommandHandler();
     void streamCurrentSong();
     std::shared_ptr<Playlist> m_playlist;

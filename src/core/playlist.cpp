@@ -1,4 +1,6 @@
 #include "core/playlist.hpp"
+#include "core/logger.hpp"
+#include <fstream>
 
 const std::string& Playlist::name() const
 {
@@ -27,8 +29,64 @@ int Playlist::importFromFolder(std::filesystem::path path)
             count++;
         }
     }
-    m_currentTrackIter = m_tracks.begin();
+
+    resetToFirstTrack();
     return count;
+}
+
+int Playlist::importFromFile(std::filesystem::path path)
+{
+    std::error_code ec;
+    if (!fs::exists(path, ec) || !fs::is_regular_file(path, ec))
+    {
+        ERROR_EC_MSG(ec);
+        return 0;
+    }
+
+    m_path = path;
+    std::ifstream in(path);
+    std::string line;
+    // Get playlist name
+    if (getline(in, line) && line != "")
+    {
+        m_name = line;
+    }
+    else
+    {
+        ERROR_LOG("Playlist name is missing (corrupted file)");
+        return 0;
+    }
+
+    if (getline(in, line))
+    {
+        m_description = line;
+    }
+    else
+    {
+        ERROR_LOG("Playlist description is missing (corrupted file)");
+        return 0;
+    }
+
+    int count = 0;
+    m_tracks.clear();
+    m_shuffledPlaylist.clear();
+    auto parentPath = path.parent_path();
+    for (std::string line; getline(in, line);)
+    {
+        TrackPtr track = std::make_shared<Track>();
+        if (track->initFromFile(parentPath / fs::path(line)))
+        {
+            addTrack(track);
+            count++;
+        }
+    }
+    m_isValid = true;
+    return count;
+}
+
+bool Playlist::isValid() const
+{
+    return m_isValid;
 }
 
 int Playlist::size() const
@@ -254,6 +312,13 @@ void Playlist::shuffle()
 void Playlist::unshuffle()
 {
     m_isShuffled = false;
+    if (m_currentTrackIter == m_shuffledPlaylist.end())
+    {
+        m_currentTrackIter = m_tracks.begin();
+        m_shuffledPlaylist.clear();
+        return;
+    }
+
     for (auto it = m_tracks.begin(); it != m_tracks.end(); ++it)
     {
         if (*m_currentTrackIter == *it)

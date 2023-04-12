@@ -25,6 +25,7 @@ set(HEADER_FILES
     include/core/playlist.hpp 
     include/core/track.hpp
     include/core/logger.hpp
+    include/core/constants.hpp
 
     include/ui/iplayer.hpp
     include/ui/text_based_player.hpp
