@@ -1,5 +1,5 @@
-title track1
-artist artist1
+title I Don't Want to Miss a Thing
+artist Aerosmith
 codec mp3
-duration 50
-content 11111111 aaaa
+duration 500
+content I could stay awake just to hear you breathin'

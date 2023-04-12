@@ -1,4 +1,8 @@
 #pragma once
 
-constexpr int DelayBetweenContent = 700; // in milliseconds
-constexpr int DelayBetweenTracks = 1000; // in milliseconds
+#include <chrono>
+
+using namespace std::chrono_literals;
+
+const auto DelayBetweenContent = 700ms;
+const auto DelayBetweenTracks = 1000ms; // in milliseconds

@@ -104,7 +104,7 @@ void TextBasedPlayer::streamCurrentSong()
         else
         {
             std::cout << m_currentTrack->streamCurrentContent();
-            Sleep(DelayBetweenContent /*milliseconds*/); // Delay between content
+            std::this_thread::sleep_for(DelayBetweenContent);
         }
     }
 
@@ -284,7 +284,7 @@ void TextBasedPlayer::run()
         while (m_isRunning)
         {
             streamCurrentSong();
-            Sleep(DelayBetweenTracks); // Delay between tracks
+            std::this_thread::sleep_for(DelayBetweenTracks);
         }
     });
 
