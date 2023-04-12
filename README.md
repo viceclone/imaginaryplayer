@@ -44,6 +44,10 @@ Example:
 > - **'Q'     :** *quit*  
 ----------------------------------------------------------
 
+# Overall design
+The application consists of two threads:
+- The first thread receives commands (e.g. play, pause) from keyboard input and sends signal to the second one.
+- The second thread streams tracks to ```std::cout```.
 # Build project
 The project requires C++17 and MSVC 17.4.5 for the Windows build.
 ```
