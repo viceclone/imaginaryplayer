@@ -15,18 +15,16 @@ public:
 
     // Return the number of valid track imported
     int importPlaylist() override;
-
+    void currentPlaylistInfo() override;
     void play() override;
     void pause() override;
 
-    bool next() override;
+    bool next(bool autoplay = false) override;
     bool previous() override;
 
     void shuffle() override;
-    void unshuffle() override;
     
-    void repeatAll() override;
-    void repeatOne() override;
+    void repeat() override;
 
     void init() override;
     void run() override;

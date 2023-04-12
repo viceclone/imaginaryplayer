@@ -1,5 +1,20 @@
 #include "core/playlist.hpp"
 
+const std::string& Playlist::name() const
+{
+    return m_name;
+}
+
+const std::string& Playlist::description() const
+{
+    return m_description;
+}
+
+const TrackList & Playlist::tracks() const
+{
+    return m_tracks;
+}
+
 int Playlist::importFromFolder(std::filesystem::path path)
 {
     int count = 0;
@@ -52,11 +67,17 @@ std::shared_ptr<Track> Playlist::currentTrack()
     }
 }
 
-std::shared_ptr<Track> Playlist::nextTrack()
+std::shared_ptr<Track> Playlist::nextTrack(bool autoplay)
 {
     if (m_tracks.empty())
     {
         return nullptr;
+    }
+
+    if (autoplay && m_repeatMode == RepeatMode::RepeatCurrentSong)
+    {
+        // Return the current song and do nothing else
+        return *m_currentTrackIter;
     }
 
     if (m_isShuffled)
@@ -66,18 +87,20 @@ std::shared_ptr<Track> Playlist::nextTrack()
             return nullptr;
         }
         ++m_currentTrackIter;
-        if (m_repeatMode == RepeatMode::RepeatWholePlaylist 
-            && m_currentTrackIter == m_shuffledPlaylist.end())
+        if (m_currentTrackIter == m_shuffledPlaylist.end())
         {
-            m_currentTrackIter = m_shuffledPlaylist.begin();
+            if (m_repeatMode == RepeatMode::RepeatWholePlaylist)
+            {
+                m_currentTrackIter = m_shuffledPlaylist.begin();
+            }
+            else
+            {
+                return nullptr;
+            }
+            
         }
-        else
-        {
-            return nullptr;
-        }
-        
     }
-    else if (!m_isShuffled)
+    else
     {
         if (m_currentTrackIter == m_tracks.end())
         {
@@ -85,13 +108,16 @@ std::shared_ptr<Track> Playlist::nextTrack()
         }
 
         ++m_currentTrackIter;
-        if (m_repeatMode == RepeatMode::RepeatWholePlaylist && m_currentTrackIter == m_tracks.end())
+        if (m_currentTrackIter == m_tracks.end())
         {
-            m_currentTrackIter = m_tracks.begin();
-        }
-        else
-        {
-            return nullptr;
+            if (m_repeatMode == RepeatMode::RepeatWholePlaylist)
+            {
+                m_currentTrackIter = m_tracks.begin();
+            }
+            else
+            {
+                return nullptr;
+            }
         }
     }
 
@@ -103,6 +129,12 @@ std::shared_ptr<Track> Playlist::previousTrack()
     if (m_tracks.empty())
     {
         return nullptr;
+    }
+
+    if (m_repeatMode == RepeatMode::RepeatCurrentSong)
+    {
+        // Return the current song and do nothing else
+        return *m_currentTrackIter; 
     }
 
     if (m_isShuffled)
@@ -190,6 +222,71 @@ bool Playlist::removeTrack(int trackIdx)
         }
     }
     return true;    
+}
+
+bool Playlist::isShuffled() const
+{
+    return m_isShuffled;
+}
+
+void Playlist::shuffle()
+{
+    std::vector<std::reference_wrapper<const TrackPtr>> v(m_tracks.begin(), m_tracks.end());
+    std::shuffle(v.begin(), v.end(), std::mt19937{ std::random_device{}()});
+    TrackList shuffled;
+    for (auto &ref : v) 
+    {
+        if (ref.get() == *m_currentTrackIter)
+        {
+            shuffled.push_front(std::move(ref.get()));
+        }
+        else
+        {
+            shuffled.push_back(std::move(ref.get()));
+        }
+    }
+    
+    m_shuffledPlaylist.swap(shuffled);
+    m_isShuffled = true;
+    m_currentTrackIter = m_shuffledPlaylist.begin();
+}
+
+void Playlist::unshuffle()
+{
+    m_isShuffled = false;
+    for (auto it = m_tracks.begin(); it != m_tracks.end(); ++it)
+    {
+        if (*m_currentTrackIter == *it)
+        {
+            m_currentTrackIter = it;
+            break;
+        }
+    }
+    m_shuffledPlaylist.clear();
+}
+
+RepeatMode Playlist::getRepeatMode() const
+{
+    return m_repeatMode;
+}
+
+void Playlist::repeat()
+{
+    switch (m_repeatMode)
+    {
+    case RepeatMode::NoRepeat:
+        m_repeatMode = RepeatMode::RepeatWholePlaylist;
+        break;
+    case RepeatMode::RepeatWholePlaylist:
+        m_repeatMode = RepeatMode::RepeatCurrentSong;
+        break;
+    case RepeatMode::RepeatCurrentSong:
+        m_repeatMode = RepeatMode::NoRepeat;
+        break;
+    default:
+        break;
+    }
+    
 }
 
 void Playlist::clear()

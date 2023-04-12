@@ -10,18 +10,23 @@ public:
     ~Player() = default;
 
     virtual int importPlaylist() = 0;
+    virtual void currentPlaylistInfo() = 0;
 
     virtual void play() = 0;
     virtual void pause() = 0;
 
-    virtual bool next() = 0;
+    // 
+    /**
+     * @param autoplay true if the player continues automatically to the next song, false otherwise
+     * 
+    */
+    virtual bool next(bool autoplay = false) = 0;
     virtual bool previous() = 0;
 
     virtual void shuffle() = 0;
-    virtual void unshuffle() = 0;
     
-    virtual void repeatAll() = 0;
-    virtual void repeatOne() = 0;
+    // Switching repeat mode. Order: NoRepeat -> RepeatAll -> RepeatOne
+    virtual void repeat() = 0;
 
     // Run the player
     virtual void init() = 0;

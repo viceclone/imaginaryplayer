@@ -30,6 +30,31 @@ int TextBasedPlayer::importPlaylist()
     return m_playlist->importFromFolder(path);
 }
 
+void TextBasedPlayer::currentPlaylistInfo()
+{
+    if (m_isPlaying)
+    {
+        NEWLINE();
+    }
+    LOG(BOLD("/////////////////// CURRENT PLAYLIST ///////////////////"));
+    LOG(BOLD("Name: " << m_playlist->name() << ""));
+    LOG("Description: " << m_playlist->description() << "");
+    for (auto track : m_playlist->tracks())
+    {
+        if (m_currentTrack && m_currentTrack == track)
+        {
+            LOG(">>>'" << track->title() 
+                << "' by '" << track->artist() << "'");
+        }
+        else
+        {
+            LOG("---'" << track->title() 
+                << "' by '" << track->artist() << "'");
+        }
+    }
+    LOG(BOLD("########################################################"));
+}
+
 void TextBasedPlayer::streamCurrentSong()
 {
     if (!m_currentTrack)
@@ -37,9 +62,7 @@ void TextBasedPlayer::streamCurrentSong()
         return;
     }
 
-    std::cout << "Current track: '" << m_currentTrack->title() 
-              << "' by '" << m_currentTrack->artist() << "'" << std::endl;
-    while (!m_currentTrack->endOfTrack() && m_isRunning)
+    while (m_currentTrack && !m_currentTrack->endOfTrack() && m_isRunning)
     {
         if (!m_isPlaying)
         {
@@ -49,93 +72,159 @@ void TextBasedPlayer::streamCurrentSong()
         else
         {
             std::cout << m_currentTrack->streamCurrentContent();
-            Sleep(1000 /*milliseconds*/);
+            Sleep(700 /*milliseconds*/);
         }
     }
-    std::cout << std::endl;
 
     if (!m_isRunning)
     {
-        std::cout << "Quitting the application!" << std::endl;
+        LOG("Quitting the application!");
         return;
     }
 
-    m_currentTrack->resetCurrentContentIndex();
-    if (!next())
+    if (!next(true /*autoplay*/))
     {
         m_isPlaying = false;
-        std::cout << "No more track available. Press PLAY to relisten to the curren playlist!" << std::endl;
+        LOG("Press "<< GREEN("PLAY") << " to replay to the current playlist!");
     }
 }
 
 void TextBasedPlayer::play()
 {
+    std::lock_guard<decltype(m_mutex)> lock(m_mutex);
+    LOG_COMMAND(GREEN("PLAY"));
     if (!m_isPlaying)
     {
+        if (!m_currentTrack)
         {
-            std::unique_lock<decltype(m_mutex)> lock(m_mutex);
-            if (!m_currentTrack)
-            {
-                m_currentTrack = m_playlist->resetToFirstTrack();
-            }
-            else
-            {
-                m_currentTrack = m_playlist->currentTrack();
-            }
-            
-            if (m_currentTrack)
-            {
-                m_isPlaying = true;
-            }
-            else
-            {
-                std::cout << "No track in your playlist!" << std::endl;
-            }
+            m_currentTrack = m_playlist->resetToFirstTrack();
         }
-        m_cv.notify_one();
-    }    
+        else
+        {
+            m_currentTrack = m_playlist->currentTrack();
+        }
+        
+        if (m_currentTrack)
+        {
+            m_isPlaying = true;
+        }
+        else
+        {
+            LOG("No track in your playlist!");
+        }
+        LOG("Current track: '" << m_currentTrack->title() 
+            << "' by '" << m_currentTrack->artist() << "'");
+    }
+    m_cv.notify_one();
 }
 
 void TextBasedPlayer::pause()
 {
-    std::unique_lock<decltype(m_mutex)> l(m_mutex);
+    std::lock_guard<decltype(m_mutex)> lock(m_mutex);
+    LOG_COMMAND(YELLOW("PAUSE"));
     m_isPlaying = false;
 }
 
-bool TextBasedPlayer::next()
+bool TextBasedPlayer::next(bool autoplay)
 {
-    m_currentTrack = m_playlist->nextTrack();
-    return m_currentTrack != nullptr;
+    std::lock_guard<decltype(m_mutex)> lock(m_mutex);
+    if (m_currentTrack)
+    {
+        m_currentTrack->resetCurrentContentIndex();
+    }
+    
+    if (!autoplay)
+    {
+        LOG_COMMAND(CYAN("NEXT TRACK"));
+    }
+    
+    m_currentTrack = m_playlist->nextTrack(autoplay);
+    NEWLINE();
+    if (m_currentTrack)
+    {
+        LOG("Switching to the next song '" << m_currentTrack->title() 
+                    << "' by '" << m_currentTrack->artist() << "'");
+        return true;
+    }
+    else
+    {
+        LOG("No track available!");
+        return false;
+    }
 }
 
 bool TextBasedPlayer::previous()
 {
-    return true;
+    std::lock_guard<decltype(m_mutex)> lock(m_mutex);
+    LOG_COMMAND(CYAN("PREVIOUS TRACK"));
+    if (m_currentTrack)
+    {
+        m_currentTrack->resetCurrentContentIndex();
+    }
+    
+    m_currentTrack = m_playlist->previousTrack();
+    NEWLINE();
+    if (m_currentTrack)
+    {
+        LOG("Switching to the previous song '" << m_currentTrack->title() 
+                    << "' by '" << m_currentTrack->artist() << "'");
+        return true;
+    }
+    else
+    {
+        LOG("No track available!");
+        return false;
+    }
 }
 
 void TextBasedPlayer::shuffle()
 {
-
+    std::lock_guard<decltype(m_mutex)> lock(m_mutex);
+    if (!m_playlist->isShuffled())
+    {
+        LOG_COMMAND(CYAN("SHUFFLE"));
+        m_playlist->shuffle();
+    }
+    else
+    {
+        LOG_COMMAND(CYAN("UNSHUFFLE"));
+        m_playlist->unshuffle();
+    }
 }
 
-void TextBasedPlayer::unshuffle()
+void TextBasedPlayer::repeat()
 {
-
-}
-
-void TextBasedPlayer::repeatAll()
-{
-
-}
-
-void TextBasedPlayer::repeatOne()
-{
-
+    std::lock_guard<decltype(m_mutex)> lock(m_mutex);
+    LOG_COMMAND(CYAN("REPEAT"));
+    m_playlist->repeat();
+    switch (m_playlist->getRepeatMode())
+    {
+    case RepeatMode::NoRepeat:
+        LOG("Switching repeat mode to " << YELLOW(BOLD("NONE")));
+        break;
+    case RepeatMode::RepeatWholePlaylist:
+        LOG("Switching repeat mode to " << YELLOW(BOLD("WHOLE PLAYLIST")));
+        break;
+    case RepeatMode::RepeatCurrentSong:
+        LOG("Switching repeat mode to " << YELLOW(BOLD("CURRENT SONG")));
+        break;
+    default:
+        break;
+    }
 }
 
 void TextBasedPlayer::init()
 {
+    std::lock_guard<decltype(m_mutex)> lock(m_mutex);
     m_playlist = std::make_shared<Playlist>();
+}
+
+void TextBasedPlayer::terminate()
+{
+    std::lock_guard<decltype(m_mutex)> lock(m_mutex);
+    LOG_COMMAND(RED("TERMINATE"));
+    m_isRunning = false;
+    m_cv.notify_all();
 }
 
 void TextBasedPlayer::run()
@@ -149,7 +238,7 @@ void TextBasedPlayer::run()
         while (m_isRunning)
         {
             streamCurrentSong();
-            Sleep(10);
+            Sleep(100);
         }
     });
 
@@ -163,29 +252,39 @@ void TextBasedPlayer::startCommandHandler()
     {
         charCommand = _getch();
         charCommand = toupper(charCommand);
+        if (m_isPlaying)
+        {
+            NEWLINE();
+        }
         switch (charCommand)
         {
         case 'Z':
-            std::cout << std::endl << ">>>>> " << GREEN(BOLD("PLAY")) << " <<<<<" << std::endl;
             play();
             break;
         case 'X':
-            std::cout << std::endl << ">>>>> " << YELLOW(BOLD("PAUSE")) << " <<<<<" << std::endl;
             pause();
             break;
+        case 'D':
+            next();
+            break;
+        case 'A':
+            previous();
+            break;
+        case 'S':
+            shuffle();
+            break;
+        case 'R':
+            repeat();
+            break;
+        case 'I':
+            currentPlaylistInfo();
+            break;
         case 'Q':
-            std::cout << std::endl << ">>>>> " << RED(BOLD("QUIT")) << " <<<<<" << std::endl;
             terminate();
             break;
         default:
             break;
         }
     } while (m_isRunning);
-    
 }
 
-void TextBasedPlayer::terminate()
-{
-    m_isRunning = false;
-    m_cv.notify_all();
-}
