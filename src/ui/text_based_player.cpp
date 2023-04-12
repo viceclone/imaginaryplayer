@@ -1,6 +1,5 @@
-#include <windows.h>
-#include <winuser.h>
-#include <conio.h>
+#include <cstdio>
+#include <cctype>
 #include <iostream>
 #include <filesystem>
 #include "ui/text_based_player.hpp"
@@ -296,8 +295,8 @@ void TextBasedPlayer::startCommandHandler()
     int charCommand;
     do
     {
-        charCommand = _getch();
-        charCommand = toupper(charCommand);
+        charCommand = getchar();
+        charCommand = std::toupper(charCommand);
         if (m_isPlaying)
         {
             NEWLINE();
