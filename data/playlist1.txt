@@ -1,0 +1,6 @@
+Playlist 1
+This is the first playlist
+tracks/track1.txt
+tracks/track2.txt
+tracks/track3.txt
+tracks/track4.txt

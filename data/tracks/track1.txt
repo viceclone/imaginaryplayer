@@ -1,0 +1,5 @@
+title I Don't Want to Miss a Thing
+artist Aerosmith
+codec mp3
+duration 500
+content I could stay awake just to hear you breathin'
