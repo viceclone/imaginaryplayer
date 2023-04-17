@@ -87,6 +87,26 @@ void TextBasedPlayer::currentPlaylistInfo()
     LOG(BOLD("########################################################"));
 }
 
+void TextBasedPlayer::currentTrackInfo()
+{
+    if (m_isPlaying)
+    {
+        NEWLINE();
+    }
+    LOG(BOLD("/////////////////// CURRENT TRACK ///////////////////"));
+    if (!m_currentTrack)
+    {
+        LOG(BOLD("NO CURRENT TRACK IS SELECTED"));
+    }
+    else
+    {
+        LOG(CYAN(BOLD("Title: " << m_currentTrack->title() << "")));
+        LOG(BOLD("Artist: ") << m_currentTrack->artist() << "");
+        LOG(BOLD("Codec: ") << m_currentTrack->codec() << "");
+    }
+    LOG(BOLD("########################################################"));
+}
+
 void TextBasedPlayer::streamCurrentSong()
 {
     if (!m_currentTrack)
@@ -331,6 +351,9 @@ void TextBasedPlayer::startCommandHandler()
             break;
         case 'I':
             currentPlaylistInfo();
+            break;
+        case 'U':
+            currentTrackInfo();
             break;
         case 'Q':
             terminate();

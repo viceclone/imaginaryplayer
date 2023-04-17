@@ -16,6 +16,8 @@ public:
     // Return the number of valid track imported
     int importPlaylist() override;
     void currentPlaylistInfo() override;
+    void currentTrackInfo() override;
+    
     void play() override;
     void pause(bool autopause = false) override;
 

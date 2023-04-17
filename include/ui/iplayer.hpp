@@ -11,6 +11,7 @@ public:
 
     virtual int importPlaylist() = 0;
     virtual void currentPlaylistInfo() = 0;
+    virtual void currentTrackInfo() = 0;
 
     virtual void play() = 0;
     virtual void pause(bool autopause = false) = 0;
