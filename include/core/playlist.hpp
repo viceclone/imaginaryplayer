@@ -23,6 +23,9 @@ public:
     Playlist() = default;
     ~Playlist() = default;
 
+    void setName(const std::string& name);
+    void setDescription(const std::string& description);
+
     const std::string& name() const;
     const std::string& description() const;
     const TrackList & tracks() const;
@@ -32,7 +35,9 @@ public:
     int importFromFile(std::filesystem::path path);
     void exportToFile(std::filesystem::path path);
 
+    void validate(bool valid);
     bool isValid() const;
+
     int size() const;
 
     // Reset the pointer to the first track
@@ -47,6 +52,8 @@ public:
     void addTrack(std::shared_ptr<Track> track);
     // Return true if removal successful. False otherwise
     bool removeTrack(int trackIdx);
+
+    void removeDuplicate();
 
     // Shuffle
     bool isShuffled() const;
@@ -66,6 +73,7 @@ private:
     TrackList m_tracks; // A track can be in different playlist, therefore they are included as shared pointers.
     TrackList m_shuffledPlaylist;
     TrackListIterator m_currentTrackIter;
+    TrackPtr m_currentTrack;
     RepeatMode m_repeatMode{RepeatMode::NoRepeat};
     bool m_isShuffled{false};
 };

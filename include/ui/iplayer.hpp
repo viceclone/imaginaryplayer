@@ -9,7 +9,17 @@ public:
     Player() = default;
     ~Player() = default;
 
+    // Playlist
     virtual int importPlaylist() = 0;
+
+    virtual void createPlaylist() = 0;
+    virtual void savePlaylist() = 0;
+    
+    virtual void addTrack() = 0;
+    virtual void removeTrack() = 0;
+    virtual void removeDuplicate() = 0;
+
+    // Info
     virtual void currentPlaylistInfo() = 0;
     virtual void currentTrackInfo() = 0;
 

@@ -19,3 +19,5 @@
 
 #define ERROR_EC_MSG(ec) std::cerr << BOLD(RED("ERROR: ")) << ec.message() << std::endl
 #define ERROR_LOG(err) std::cerr << BOLD(RED("ERROR: ")) << err << std::endl
+
+#define PROMPT(str, x) std::cout << str << ": "; std::getline(std::cin, x);
