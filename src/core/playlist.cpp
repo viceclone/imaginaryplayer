@@ -1,6 +1,17 @@
 #include "core/playlist.hpp"
 #include "core/logger.hpp"
 #include <fstream>
+#include <set>
+
+void Playlist::setName(const std::string& name)
+{
+    m_name = name;
+}
+
+void Playlist::setDescription(const std::string& description)
+{
+    m_description = description;
+}
 
 const std::string& Playlist::name() const
 {
@@ -84,6 +95,23 @@ int Playlist::importFromFile(std::filesystem::path path)
     return count;
 }
 
+void Playlist::exportToFile(std::filesystem::path path)
+{
+    std::ofstream os(path);
+    os << m_name << std::endl;
+    os << m_description << std::endl;
+    for (auto track : m_tracks)
+    {
+        os << track->path() << std::endl;
+    }
+    os.close();
+}
+
+void Playlist::validate(bool valid)
+{
+    m_isValid = valid;
+}
+
 bool Playlist::isValid() const
 {
     return m_isValid;
@@ -115,27 +143,36 @@ std::shared_ptr<Track> Playlist::resetToFirstTrack()
 
 std::shared_ptr<Track> Playlist::currentTrack()
 {
-    if (m_tracks.empty())
-    {
-        return nullptr;
-    }
-    else
-    {
-        return *m_currentTrackIter;
-    }
+    // if (m_tracks.empty())
+    // {
+    //     return nullptr;
+    // }
+    // else
+    // {
+    //     return *m_currentTrackIter;
+    // }
+    return m_currentTrack;
 }
 
 std::shared_ptr<Track> Playlist::nextTrack(bool autoplay)
 {
     if (m_tracks.empty())
     {
+        m_currentTrack = nullptr;
         return nullptr;
     }
 
-    if (autoplay && m_repeatMode == RepeatMode::RepeatCurrentSong)
+    if (m_repeatMode == RepeatMode::RepeatCurrentSong)
     {
-        // Return the current song and do nothing else
-        return *m_currentTrackIter;
+        if (autoplay)
+        {
+            // Return the current song and do nothing else
+            return m_currentTrack;
+        }
+        else
+        {
+            m_repeatMode = RepeatMode::RepeatWholePlaylist;
+        }
     }
 
     if (m_isShuffled)
@@ -153,6 +190,7 @@ std::shared_ptr<Track> Playlist::nextTrack(bool autoplay)
             }
             else
             {
+                m_currentTrack = nullptr;
                 return nullptr;
             }
             
@@ -162,6 +200,7 @@ std::shared_ptr<Track> Playlist::nextTrack(bool autoplay)
     {
         if (m_currentTrackIter == m_tracks.end())
         {
+            m_currentTrack = nullptr;
             return nullptr;
         }
 
@@ -174,18 +213,21 @@ std::shared_ptr<Track> Playlist::nextTrack(bool autoplay)
             }
             else
             {
+                m_currentTrack = nullptr;
                 return nullptr;
             }
         }
     }
 
-    return *m_currentTrackIter;
+    m_currentTrack = *m_currentTrackIter;
+    return m_currentTrack;
 }
 
 std::shared_ptr<Track> Playlist::previousTrack()
 {
     if (m_tracks.empty())
     {
+        m_currentTrack = nullptr;
         return nullptr;
     }
 
@@ -209,6 +251,7 @@ std::shared_ptr<Track> Playlist::previousTrack()
             }
             else
             {
+                m_currentTrack = nullptr;
                 return nullptr;
             }
         }
@@ -227,18 +270,20 @@ std::shared_ptr<Track> Playlist::previousTrack()
             }
             else
             {
+                m_currentTrack = nullptr;
                 return nullptr;
             }
         }
     }
-
-    return *m_currentTrackIter;
+    m_currentTrack = *m_currentTrackIter;
+    return m_currentTrack;
 }
 
 void Playlist::addTrack(std::shared_ptr<Track> track)
 {
     // Add the track at the end of the normal list
     m_tracks.push_back(track);
+
     // Add the track at a random point from the list
     if (m_shuffledPlaylist.empty())
     {
@@ -250,17 +295,39 @@ void Playlist::addTrack(std::shared_ptr<Track> track)
         auto iter = std::next(m_shuffledPlaylist.begin(), randomPos);
         m_shuffledPlaylist.insert(iter, track);
     }
+
+    if (m_tracks.size() == 1)
+    {
+        if (m_isShuffled)
+        {
+            m_currentTrackIter = m_shuffledPlaylist.begin();
+        }
+        else
+        {
+            m_currentTrackIter = m_tracks.begin();
+        }
+        m_currentTrack = *m_currentTrackIter;
+    }
 }
 
 bool Playlist::removeTrack(int trackIdx)
 {
-    if (trackIdx > m_tracks.size())
+    if (trackIdx > m_tracks.size() || trackIdx < 0)
     {
         return false;
     }
     auto iter = std::next(m_tracks.begin(), trackIdx);
     auto trackToRemove = *iter;
-    iter = m_tracks.erase(iter);
+    if (iter == m_currentTrackIter)
+    {
+        m_currentTrackIter = m_tracks.erase(iter);
+        iter = m_currentTrackIter;
+    }
+    else
+    {
+        iter = m_tracks.erase(iter);
+    }
+    
     if (!m_tracks.empty() && !m_isShuffled && iter == m_tracks.end())
     {
         m_currentTrackIter = m_tracks.begin();
@@ -282,6 +349,42 @@ bool Playlist::removeTrack(int trackIdx)
     return true;    
 }
 
+struct TrackPtrComp
+{
+    bool operator()(const TrackPtr& lhs, const TrackPtr& rhs) const { 
+        return (lhs->title() < rhs->title()) && (lhs->artist() < rhs->artist()); 
+    }
+};
+
+void Playlist::removeDuplicate()
+{
+    std::set<TrackPtr, TrackPtrComp> found;
+    for (auto iter = m_tracks.begin(); iter != m_tracks.end(); )
+    {
+        if (!found.insert(*iter).second)
+        {
+            iter = m_tracks.erase(iter);
+            for (auto iter2 = m_shuffledPlaylist.begin(); m_isShuffled && iter2 != m_shuffledPlaylist.end(); ++iter2)
+            {
+                if (*iter2 == *iter)
+                {
+                    m_shuffledPlaylist.erase(iter2);
+
+                    if (!m_shuffledPlaylist.empty() && m_isShuffled && iter2 == m_shuffledPlaylist.end())
+                    {
+                        m_currentTrackIter = m_shuffledPlaylist.begin();
+                    }
+                    break;
+                }
+            }
+        }
+        else
+        {
+            ++iter;
+        }      
+    }
+}
+
 bool Playlist::isShuffled() const
 {
     return m_isShuffled;
@@ -289,6 +392,12 @@ bool Playlist::isShuffled() const
 
 void Playlist::shuffle()
 {
+    if (m_tracks.size() == 0)
+    {
+        m_shuffledPlaylist = std::list<TrackPtr>{};
+        return;
+    }
+
     std::vector<std::reference_wrapper<const TrackPtr>> v(m_tracks.begin(), m_tracks.end());
     std::shuffle(v.begin(), v.end(), std::mt19937{ std::random_device{}()});
     TrackList shuffled;

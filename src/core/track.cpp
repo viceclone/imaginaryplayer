@@ -1,6 +1,7 @@
 #include <fstream>
 #include "core/track.hpp"
 
+namespace fs = std::filesystem;
 bool Track::parseKeyValue(const std::string& key, const std::string& val)
 {
     if (key == "title")
@@ -45,6 +46,15 @@ bool Track::initFromFile(std::filesystem::path path)
         {
             return false;
         }
+    }
+    
+    if (path.is_relative())
+    {
+        m_path = fs::current_path() / path;
+    }
+    else
+    {
+        m_path = path;
     }
     return true;
 }
